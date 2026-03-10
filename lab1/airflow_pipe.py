@@ -14,89 +14,108 @@ from train_model import train
 
 
 AIRFLOW_HOME = Path(os.environ.get("AIRFLOW_HOME", ".")).resolve()
-DATA_DIR = AIRFLOW_HOME / "data" / "cars"
+DATA_DIR = AIRFLOW_HOME / "data" / "food"
 DATA_DIR.mkdir(parents=True, exist_ok=True)
 
-CARS_CSV = DATA_DIR / "cars.csv"
+FOOD_CSV = DATA_DIR / "food.csv"
 DF_CLEAR_CSV = DATA_DIR / "df_clear.csv"
+
+DATA_URL = "https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2018/2018-09-04/fastfood_calories.csv"
 
 
 def download_data():
-    df = pd.read_csv(
-        "https://raw.githubusercontent.com/dayekb/Basic_ML_Alg/main/cars_moldova_no_dup.csv",
-        delimiter=",",
-    )
-    df.to_csv(CARS_CSV, index=False)
-    print("Saved raw dataset to:", CARS_CSV)
+    df = pd.read_csv(DATA_URL, delimiter=",")
+
+    df.columns = [
+        c.strip()
+        .lower()
+        .replace(" ", "_")
+        .replace("-", "_")
+        .replace("(", "")
+        .replace(")", "")
+        for c in df.columns
+    ]
+
+    df.to_csv(FOOD_CSV, index=False)
+    print("Saved raw dataset to:", FOOD_CSV)
     print("df shape:", df.shape)
     return True
 
 
 def clear_data():
-    df = pd.read_csv(CARS_CSV)
+    df = pd.read_csv(FOOD_CSV)
 
-    cat_columns = ["Make", "Model", "Style", "Fuel_type", "Transmission"]
+    if "item" in df.columns:
+        df = df.drop(columns=["item"])
 
-    # Очистка по здравому смыслу / выбросам
-    question_dist = df[(df.Year < 2021) & (df.Distance < 1100)]
-    df = df.drop(question_dist.index)
+    cat_columns = [col for col in ["restaurant", "salad"] if col in df.columns]
 
-    question_dist = df[(df.Distance > 1e6)]
-    df = df.drop(question_dist.index)
+    for col in df.columns:
+        if col not in cat_columns:
+            df[col] = pd.to_numeric(df[col], errors="coerce")
 
-    question_engine = df[df["Engine_capacity(cm3)"] < 200]
-    df = df.drop(question_engine.index)
+    df = df.drop_duplicates()
 
-    question_engine = df[df["Engine_capacity(cm3)"] > 5000]
-    df = df.drop(question_engine.index)
+    if "calories" in df.columns:
+        df = df.dropna(subset=["calories"])
+        df = df[(df["calories"] > 0) & (df["calories"] < 3000)]
 
-    question_price = df[(df["Price(euro)"] < 101)]
-    df = df.drop(question_price.index)
+    for col in df.columns:
+        if col not in cat_columns and col != "calories":
+            df[col] = df[col].fillna(df[col].median())
 
-    question_price = df[df["Price(euro)"] > 1e5]
-    df = df.drop(question_price.index)
+    if "sodium" in df.columns:
+        df = df[df["sodium"] < 10000]
 
-    question_year = df[df.Year < 1971]
-    df = df.drop(question_year.index)
+    if "protein" in df.columns:
+        df = df[df["protein"] < 200]
+
+    if "total_fat" in df.columns:
+        df = df[df["total_fat"] < 200]
+
+    if "total_carb" in df.columns:
+        df = df[df["total_carb"] < 300]
 
     df = df.reset_index(drop=True)
 
-    # Ordinal encoding категориальных колонок
-    ordinal = OrdinalEncoder()
-    df[cat_columns] = ordinal.fit_transform(df[cat_columns])
+    for col in cat_columns:
+        df[col] = df[col].fillna("unknown").astype(str)
 
-    # Сохраняем очищенный датасет
+    if cat_columns:
+        ordinal = OrdinalEncoder()
+        df[cat_columns] = ordinal.fit_transform(df[cat_columns])
+
     df.to_csv(DF_CLEAR_CSV, index=False)
     print("Saved cleaned dataset to:", DF_CLEAR_CSV)
     print("df_clear shape:", df.shape)
     return True
 
 
-dag_cars = DAG(
-    dag_id="train_pipe",
+dag_food = DAG(
+    dag_id="train_food_pipe",
     start_date=datetime(2025, 2, 3),
-    schedule=timedelta(minutes=5),
     max_active_tasks=4,
+    schedule=timedelta(minutes=5),
     max_active_runs=1,
     catchup=False,
 )
 
 download_task = PythonOperator(
-    task_id="download_cars",
     python_callable=download_data,
-    dag=dag_cars,
+    task_id="download_food",
+    dag=dag_food,
 )
 
 clear_task = PythonOperator(
-    task_id="clear_cars",
     python_callable=clear_data,
-    dag=dag_cars,
+    task_id="clear_food",
+    dag=dag_food,
 )
 
 train_task = PythonOperator(
-    task_id="train_cars",
     python_callable=train,
-    dag=dag_cars,
+    task_id="train_food",
+    dag=dag_food,
 )
 
 download_task >> clear_task >> train_task
