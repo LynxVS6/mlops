@@ -1,0 +1,30 @@
+pipeline {
+    agent any
+
+    stages {
+        stage('Download') {
+            steps {
+                sh 'chmod +x ./download_stage.sh ./train_stage.sh ./deploy.sh ./healthy.sh'
+                sh './download_stage.sh'
+            }
+        }
+
+        stage('Train') {
+            steps {
+                sh './train_stage.sh'
+            }
+        }
+
+        stage('Deploy') {
+            steps {
+                sh './deploy.sh'
+            }
+        }
+
+        stage('Healthy') {
+            steps {
+                sh './healthy.sh'
+            }
+        }
+    }
+}
