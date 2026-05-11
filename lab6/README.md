@@ -1,30 +1,24 @@
 # Лабораторная работа 6
 
-1. Перейти в папку лабораторной:
-
-```bash
-cd lab6
-```
-
-2. Запустить приложение и базу данных:
+1. Запустить приложение и базу данных:
 
 ```bash
 docker compose up --build
 ```
 
-3. Открыть сервис:
+2. Открыть сервис:
 
 ```text
 http://localhost:8000
 ```
 
-4. Открыть Swagger:
+3. Открыть Swagger:
 
 ```text
 http://localhost:8000/docs
 ```
 
-5. Посмотреть контейнеры:
+4. Посмотреть контейнеры:
 
 ```bash
 docker ps -a
@@ -37,22 +31,28 @@ mlops_fastapi_api
 mlops_fastapi_db
 ```
 
-6. Посмотреть логи приложения:
+5. Посмотреть логи приложения:
 
 ```bash
 docker logs mlops_fastapi_api
 ```
 
-7. Посмотреть логи базы:
+6. Посмотреть логи базы:
 
 ```bash
 docker logs mlops_fastapi_db
 ```
 
-8. Остановить контейнеры:
+7. Остановить контейнеры:
 
 ```bash
 docker compose down
+```
+
+8. Установить библиотеки:
+
+```bash
+python -m pip install -r requirements.txt
 ```
 
 9. Запустить тесты:
