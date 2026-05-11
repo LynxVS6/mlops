@@ -1,6 +1,19 @@
 import os
 from datetime import datetime, timezone
 
+from sqlalchemy import (
+    Column,
+    DateTime,
+    Float,
+    Integer,
+    MetaData,
+    String,
+    Table,
+    create_engine,
+    desc,
+    select,
+)
+
 
 _engine = None
 _metadata = None
@@ -25,8 +38,6 @@ def get_engine():
         return None
 
     if _engine is None:
-        from sqlalchemy import create_engine
-
         _engine = create_engine(get_database_url(), pool_pre_ping=True)
 
     return _engine
@@ -36,8 +47,6 @@ def get_predictions_table():
     global _metadata, _predictions_table
 
     if _predictions_table is None:
-        from sqlalchemy import Column, DateTime, Float, Integer, MetaData, String, Table
-
         _metadata = MetaData()
         _predictions_table = Table(
             "predictions",
@@ -94,8 +103,6 @@ def save_prediction(features, prediction: dict) -> int | None:
 def list_predictions(limit: int = 10) -> list[dict]:
     if db_is_disabled():
         return []
-
-    from sqlalchemy import desc, select
 
     engine = get_engine()
     _, table = get_predictions_table()

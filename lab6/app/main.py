@@ -16,7 +16,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title="Iris ML Service",
-    description="FastAPI-сервис для оборачивания ML-модели в web API",
+    description="FastAPI-сервис для ML-модели классификации ирисов",
     version="1.0.0",
     lifespan=lifespan,
 )

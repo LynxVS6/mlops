@@ -1,10 +1,12 @@
-import os
-
-os.environ["DISABLE_DB"] = "1"
-
+import pytest
 from fastapi.testclient import TestClient
 
 from app.main import app
+
+
+@pytest.fixture(autouse=True)
+def disable_db(monkeypatch):
+    monkeypatch.setenv("DISABLE_DB", "1")
 
 
 def test_health_endpoint():
